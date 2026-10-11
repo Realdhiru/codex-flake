@@ -5,7 +5,6 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-permissions: {}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,10 +15,11 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: experimental-features = nix-command flakes
       - uses: cachix/cachix-action@v15
+        if: github.ref == 'refs/heads/main'
         with:
           name: codex-flake
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          skipPush: ${{ github.ref != 'refs/heads/main' }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - run: nix build .#chatgpt -o result --print-build-logs
-      - if: github.ref == 'refs/heads/main'
-        run: nix path-info --json .#chatgpt | jq -r 'keys[0]' | cachix push codex-flake || true
+      - name: push
+        if: github.ref == 'refs/heads/main'
+        run: nix path-info --json .#chatgpt | jq -r 'keys[0]' | cachix push codex-flake
