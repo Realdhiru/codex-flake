@@ -17,7 +17,7 @@ jobs:
       - name: Build
         run: nix build .#chatgpt -o result --print-build-logs
       - name: Push to Cachix
-        if: github.ref == 'refs/heads/main' && secrets.CACHIX_AUTH_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && secrets.CACHIX_AUTH_TOKEN
         uses: cachix/cachix-action@v15
         with:
           name: codex-flake
