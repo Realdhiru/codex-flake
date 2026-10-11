@@ -17,6 +17,13 @@ Supported: `x86_64-linux` only (the vendor `.deb` is `amd64`).
 
 ---
 
+## Quick start
+
+```sh
+# Run without installing
+nix run github:Realdhiru/codex-flake
+```
+
 ## Requirements
 
 - NixOS (or any Nix + unprivileged user namespaces) on `x86_64-linux`.
@@ -69,12 +76,6 @@ The app appears in your launcher as **ChatGPT**. First build downloads ~497 MB.
 imports = [ inputs.chatgpt.homeModules.default ];
 # or imperatively:
 # home.packages = [ inputs.chatgpt.packages.${pkgs.system}.default ];
-```
-
-### Run without installing
-
-```sh
-nix run github:Realdhiru/codex-flake
 ```
 
 ### Imperative install
