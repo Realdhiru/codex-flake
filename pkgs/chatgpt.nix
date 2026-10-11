@@ -21,7 +21,7 @@ let
   # fetch a different version). To bump, see README "Updating the version".
   src = fetchurl {
     url = "https://persistent.oaistatic.com/codex-app-prod/linux/deb/latest/chatgpt_amd64.deb";
-    sha256 = "sha256-J2tTQcPXSyYdOtUhBvf6ft3gaEHkdn/ipAy1QJmx8+0=";
+    sha256 = "1vgkn6cl1d8clki7yxp485lf1pbyzbvhc8fm78fjcjypqd0m6sr7";
   };
 
   # Unpack the official Ubuntu .deb (Chromium/Electron app bundle).
