@@ -4,6 +4,7 @@
 , dpkg
 , buildFHSEnv
 , symlinkJoin
+, writeShellScript
 }:
 
 # ChatGPT / Codex desktop app by OpenAI.
@@ -36,14 +37,21 @@ let
     '';
   };
 
+  # OpenAI's Linux runtime is a custom Chromium build ("owl", not stock
+  # Electron). It does NOT understand ELECTRON_OZONE_PLATFORM_HINT nor
+  # --ozone-platform-hint; the only way to force native Wayland is the raw
+  # Chromium switch --ozone-platform=wayland. The FHS wrapper forwards "$@",
+  # so this launcher also propagates the .desktop `%U` URL arguments.
+  launch = writeShellScript "chatgpt-launch" ''
+    exec ${unpacked}/usr/lib/chatgpt/ChatGPT --ozone-platform=wayland "$@"
+  '';
+
   fhs = buildFHSEnv {
     name = "chatgpt-fhs";
     # Name of the wrapper placed on PATH ($out/bin/<executableName>).
     # The .desktop file launches `chatgpt`, so this must match.
     executableName = "chatgpt";
-    runScript = "${unpacked}/usr/lib/chatgpt/ChatGPT";
-    # Force native Wayland (Electron Ozone) inside the sandbox.
-    extraBwrapArgs = [ "--setenv" "ELECTRON_OZONE_PLATFORM_HINT" "wayland" ];
+    runScript = launch;
     # Runtime dependencies the bundled Chromium/Electron expects to dlopen.
     targetPkgs = p: with p; [
       gtk3 libnotify nss nspr at-spi2-core at-spi2-atk atk libdrm mesa libgbm libGL
@@ -67,7 +75,7 @@ symlinkJoin {
       $out/share/applications/chatgpt.desktop
   '';
   meta = with lib; {
-    description = "ChatGPT / Codex desktop app by OpenAI (official Linux build, wrapped in an FHS env)";
+    description = "ChatGPT / Codex desktop app by OpenAI (official Linux build, wrapped in FHS; native Wayland via --ozone-platform=wayland)";
     homepage = "https://developers.openai.com/codex/app";
     downloadPage = "https://learn.chatgpt.com/docs/linux/linux-app";
     license = licenses.unfree;

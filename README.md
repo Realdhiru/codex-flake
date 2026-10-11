@@ -105,13 +105,13 @@ nixpkgs.config.allowUnfreePredicate =
    it never silently fetches something else).
 2. `dpkg-deb -x` unpacks it to a store path.
 2. `buildFHSEnv` creates a bubblewrap sandbox exposing an FHS `/usr` tree plus the
-   shared libraries the bundled Electron/Chromium dlopens (`gtk3`, `nss`,
-   `libgbm`, `libGL`, `alsa-lib`, X libs, ...), and exposes
-   `bin/chatgpt -> /usr/lib/chatgpt/ChatGPT`.
+   shared libraries the bundled Chromium dlopens (`gtk3`, `nss`,
+   `libgbm`, `libGL`, `alsa-lib`, X libs, ...), and exposes `bin/chatgpt`.
 3. `symlinkJoin` merges in the `.desktop` entry and icon.
 
-Native Wayland is forced with `ELECTRON_OZONE_PLATFORM_HINT=wayland` inside the
-sandbox.
+Native Wayland is forced via `--ozone-platform=wayland` (raw Chromium switch);
+OpenAI's custom Chromium runtime does not honor `ELECTRON_OZONE_PLATFORM_HINT`,
+so that env var is a no-op.
 
 ## Why not just `pkgs.chatgpt`?
 
@@ -156,8 +156,9 @@ Optional: `nix flake update` to refresh nixpkgs.
 | `Package ‘chatgpt’ ... has an unfree license` | Use the NixOS/Home module (handles it), or set `nixpkgs.config.allowUnfree = true`. |
 | Launcher does nothing / no `chatgpt` on PATH | Ensure `bin/chatgpt` exists: `ls result/bin`. The wrapper name comes from `executableName`. |
 | `libgbm.so.1: cannot open shared object file` | `libgbm` was split out of `mesa`; ensure it is in `targetPkgs` (it is here). |
-| Blank window / GPU crash | Try `--disable-gpu` via `NIXOS_OZONE_WL`/Electron flags, or update nixpkgs. |
+| Blank window / GPU crash | Try `--disable-gpu` or `--disable-features=Vulkan`. Also confirm native Wayland: `hyprctl clients | grep -A2 -i chatgpt` should show `xwayland: 0`. |
 | `bwrap: ... permission denied` | Unprivileged user namespaces are disabled on your kernel. |
+| Runs in XWayland (X11) | Check launch args: should include `--ozone-platform=wayland`. `NIXOS_OZONE_WL` doesn't affect this custom Chromium build. |
 
 ## License
 
