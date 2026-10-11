@@ -1,0 +1,41 @@
+name: Update Codex
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: experimental-features = nix-command flakes
+      - name: check
+        id: c
+        run: |
+          CUR=$(sed -n 's/.*sha256 = "\([^"]*\)".*/\1/p' pkgs/chatgpt.nix | head -1)
+          NEW=$(nix-prefetch-url https://persistent.oaistatic.com/codex-app-prod/linux/deb/latest/chatgpt_amd64.deb 2>/dev/null | tail -1)
+          echo "cur=$CUR" >> $GITHUB_OUTPUT
+          echo "new=$NEW" >> $GITHUB_OUTPUT
+          [ "$CUR" != "$NEW" ] && echo "diff=true" >> $GITHUB_OUTPUT || echo "diff=false" >> $GITHUB_OUTPUT
+      - name: update
+        if: steps.c.outputs.diff == 'true'
+        run: |
+          sed -i "s|sha256 = \"${{ steps.c.outputs.cur }}\"|sha256 = \"${{ steps.c.outputs.new }}\"|" pkgs/chatgpt.nix
+          nix flake lock
+      - name: build
+        if: steps.c.outputs.diff == 'true'
+        run: nix build .#chatgpt
+      - name: pr
+        if: steps.c.outputs.diff == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: bump codex deb hash"
+          title: "chore: bump codex deb hash"
+          body: "Auto-bumped deb hash (build verified)."
+          branch: bump/codex-${{ github.run_id }}
