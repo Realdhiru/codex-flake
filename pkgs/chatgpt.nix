@@ -1,30 +1,19 @@
-{ lib
-, stdenv
-, fetchurl
-, dpkg
-, buildFHSEnv
-, symlinkJoin
-, writeShellScript
+{ lib, stdenv, fetchurl, dpkg, buildFHSEnv, writeShellScript, symlinkJoin
+, gtk3, libnotify, nss, nspr, at-spi2-core, at-spi2-atk, atk, libdrm, mesa, libgbm, libGL
+, vulkan-loader, alsa-lib, cairo, cups, dbus, expat, gdk-pixbuf, glib
+, pango, openssl, systemd, libusb1, libxkbcommon, zlib, fontconfig
+, libx11, libxcb, libxcomposite, libxdamage, libxext, libxfixes, libxrandr
+, xdg-utils, git, wayland, pipewire, libva, libdecor, libpulseaudio
 }:
-
-# ChatGPT / Codex desktop app by OpenAI.
-#
-# OpenAI ships Linux as an Ubuntu .deb only (no Nix package, no source). This
-# derivation unpacks that .deb and wraps the bundled Electron/Chromium binary in
-# a buildFHSEnv sandbox so it finds its expected /usr/lib layout at runtime.
 
 let
   version = "26.1007.21434";
 
-  # NOTE: this is a /latest/ URL. When OpenAI publishes a new build the hash
-  # below will stop matching and the build will fail loudly (never silently
-  # fetch a different version). To bump, see README "Updating the version".
   src = fetchurl {
     url = "https://persistent.oaistatic.com/codex-app-prod/linux/deb/latest/chatgpt_amd64.deb";
     sha256 = "1vgkn6cl1d8clki7yxp485lf1pbyzbvhc8fm78fjcjypqd0m6sr7";
   };
 
-  # Unpack the official Ubuntu .deb (Chromium/Electron app bundle).
   unpacked = stdenv.mkDerivation {
     pname = "chatgpt-data";
     inherit version src;
@@ -37,29 +26,40 @@ let
     '';
   };
 
-  # OpenAI's Linux runtime is a custom Chromium build ("owl", not stock
-  # Electron). It does NOT understand ELECTRON_OZONE_PLATFORM_HINT nor
-  # --ozone-platform-hint; the only way to force native Wayland is the raw
-  # Chromium switch --ozone-platform=wayland. The FHS wrapper forwards "$@",
-  # so this launcher also propagates the .desktop `%U` URL arguments.
   launch = writeShellScript "chatgpt-launch" ''
-    exec ${unpacked}/usr/lib/chatgpt/ChatGPT --ozone-platform=wayland "$@"
+    export NIXOS_OZONE_WL=1
+    export XDG_SESSION_TYPE=wayland
+    export MOZ_ENABLE_WAYLAND=1
+    export QT_QPA_PLATFORM=wayland
+    export SDL_VIDEODRIVER=wayland
+    export GDK_BACKEND=wayland,x11
+    export CLUTTER_BACKEND=wayland
+    export XCURSOR_THEME=''${XCURSOR_THEME:-Adwaita}
+    export XCURSOR_SIZE=''${XCURSOR_SIZE:-24}
+    export WAYLAND_DISPLAY=''${WAYLAND_DISPLAY:-wayland-0}
+    export XDG_RUNTIME_DIR=''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+    export ELECTRON_OZONE_PLATFORM_HINT=wayland
+    export OZONE_PLATFORM_HINT=wayland
+    exec ${unpacked}/usr/lib/chatgpt/ChatGPT \
+      --ozone-platform=wayland \
+      --enable-features=UseOzonePlatform,WaylandWindowDecorations,WebRTCPipeWireCapturer \
+      --ozone-platform-hint=wayland \
+      --enable-wayland-ime \
+      --disable-gpu-vsync \
+      "$@"
   '';
 
   fhs = buildFHSEnv {
     name = "chatgpt-fhs";
-    # Name of the wrapper placed on PATH ($out/bin/<executableName>).
-    # The .desktop file launches `chatgpt`, so this must match.
     executableName = "chatgpt";
     runScript = launch;
-    # Runtime dependencies the bundled Chromium/Electron expects to dlopen.
     targetPkgs = p: with p; [
       gtk3 libnotify nss nspr at-spi2-core at-spi2-atk atk libdrm mesa libgbm libGL
       vulkan-loader alsa-lib cairo cups dbus expat gdk-pixbuf glib
       pango openssl systemd libusb1 libxkbcommon zlib stdenv.cc.cc fontconfig
       libx11 libxcb libxcomposite libxdamage
       libxext libxfixes libxrandr
-      xdg-utils git
+      xdg-utils git wayland pipewire libva libdecor libpulseaudio
     ];
   };
 in
