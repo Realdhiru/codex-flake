@@ -166,3 +166,11 @@ Optional: `nix flake update` to refresh nixpkgs.
 The packaging code in this repository is MIT (see `LICENSE`). The ChatGPT
 application itself is proprietary software owned by OpenAI and is **not**
 distributed here — it is downloaded from OpenAI's servers at build time.
+
+## CI & Auto-updates
+
+- **Build and Cache**: GitHub Actions build `.#chatgpt` on push/PR; pushes to Cachix `codex-flake` on `main`.
+- **Auto-bump**: Runs every 6 hours (and on manual dispatch). When OpenAI publishes a new `.deb`, the hash changes, CI opens a PR bumping it and verifies the build.
+- **Local bump**: `./scripts/bump-version.sh` (build + verify locally).
+
+For Cachix on your machine: `cachix use codex-flake` and add substituter if desired.
