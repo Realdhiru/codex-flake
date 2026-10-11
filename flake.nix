@@ -1,5 +1,5 @@
 {
-  description = "ChatGPT / Codex desktop (official Linux build) packaged for NixOS";
+  description = "NixOS flake for the official ChatGPT / Codex Linux desktop app (FHS-wrapped .deb, native Wayland)";
 
   # Pinned via flake.lock -> reproducible. Bump with `nix flake update`.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
