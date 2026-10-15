@@ -16,5 +16,7 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: experimental-features = nix-command flakes
+      - name: Check flake metadata
+        run: nix flake check --no-build
       - name: Build
         run: nix build .#chatgpt -o result --print-build-logs
