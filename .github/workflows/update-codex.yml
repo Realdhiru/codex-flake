@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: update-codex-${{ github.ref }}
@@ -18,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -25,17 +26,11 @@ jobs:
       - name: Check, update and build Codex
         id: update
         run: bash scripts/update-codex.sh
-      - name: Create pull request
+      - name: Commit and push directly to main
         if: steps.update.outputs.changed == 'true'
-        id: pr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          commit-message: "chore: update Codex"
-          title: "chore: update Codex"
-          body: "Updated the Codex package metadata and verified the Nix build."
-          branch: bump/codex-${{ github.run_id }}
-      - name: Enable auto-merge
-        if: steps.update.outputs.changed == 'true' && steps.pr.outputs.pull-request-number
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh pr merge "${{ steps.pr.outputs.pull-request-number }}" --auto --squash --delete-branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pkgs/chatgpt.nix
+          git commit -m "chore: bump Codex package to latest release"
+          git push origin main
