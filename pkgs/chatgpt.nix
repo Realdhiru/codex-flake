@@ -7,11 +7,11 @@
 }:
 
 let
-  version = "26.1023.50603";
+  version = "26.1023.51421";
 
   src = fetchurl {
     url = "https://persistent.oaistatic.com/codex-app-prod/linux/deb/latest/chatgpt_amd64.deb";
-    sha256 = "09hv29dy6sw85n1fm7wh75c0wlhzg5d1hqdg2www2l1x18pvzjgm";
+    sha256 = "0nny8h5ya1cifdvaic7azfsf1r4lfiqqv39vnaz7h2gwahmxr124";
   };
 
   unpacked = stdenv.mkDerivation {
